@@ -1,13 +1,17 @@
 package com.vadzimvincho.entity;
 
 public class ParkingPlace {
-    private long IdNumber;
+    private long idNumber;
+
+    public ParkingPlace(long idNumber) {
+        this.idNumber = idNumber;
+    }
 
     public long getIdNumber() {
-        return IdNumber;
+        return idNumber;
     }
 
     public void setIdNumber(long idNumber) {
-        IdNumber = idNumber;
+        this.idNumber = idNumber;
     }
 }

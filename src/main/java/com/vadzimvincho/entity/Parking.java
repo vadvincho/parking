@@ -9,8 +9,7 @@ public class Parking {
 
     public Parking(int numberParkingPlaces) {
         for (int i = 0; i < numberParkingPlaces; i++) {
-            ParkingPlace parkingPlace = new ParkingPlace();
-            parkingPlace.setIdNumber(i);
+            ParkingPlace parkingPlace = new ParkingPlace(i);
             parkingPlaces.add(parkingPlace);
         }
     }
