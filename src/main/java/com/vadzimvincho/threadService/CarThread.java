@@ -11,49 +11,44 @@ import java.util.concurrent.Exchanger;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class CarThread implements Runnable {
     private static final Logger logger = LoggerFactory.getLogger(CarThread.class);
 
-    private Parking parking;
+    private final Parking parking;
+    private final Car car;
+    private final Semaphore semaphore;
+    private final Exchanger<ParkingPlace> exchanger;
     private ParkingPlace emptyParkingPlace;
-    private Car car;
-    private Semaphore semaphore;
-    private ReentrantLock locker;
-    private Exchanger<ParkingPlace> exchanger;
 
-    public CarThread(Parking parking, Car car, Semaphore semaphore, ReentrantLock locker, Exchanger exchanger) {
+    public CarThread(Parking parking, Car car, Semaphore semaphore, Exchanger<ParkingPlace> exchanger) {
         this.parking = parking;
         this.car = car;
         this.semaphore = semaphore;
-        this.locker = locker;
         this.exchanger = exchanger;
     }
 
     @Override
     public void run() {
         Thread.currentThread().setName(car.getName());
-        logger.debug(Thread.currentThread().getName() + " created");
+        logger.debug("{} created", Thread.currentThread().getName());
 
         try {
             if (semaphore.tryAcquire(car.getWaitingDuration(), TimeUnit.MILLISECONDS)) {
                 emptyParkingPlace = parking.takeParkingPlaces();
             }
             if (emptyParkingPlace != null) {
-                logger.debug(Thread.currentThread().getName() + " took parking place №" + emptyParkingPlace.getIdNumber());
-                locker.lock();
+                logger.debug("{} took parking place №{}", Thread.currentThread().getName(), emptyParkingPlace.getIdNumber());
                 parking.incParkedCarCounter();
-                locker.unlock();
                 emptyParkingPlace = exchangeParkingPlace(emptyParkingPlace);
                 Thread.sleep(car.getParkingDuration());
                 parking.freeUpParkingPlace(emptyParkingPlace);
-                logger.debug(Thread.currentThread().getName() + " leave parking place №" + emptyParkingPlace.getIdNumber());
+                logger.debug("{} leave parking place №{}", Thread.currentThread().getName(), emptyParkingPlace.getIdNumber());
             } else {
-                logger.debug(Thread.currentThread().getName() + " has left. The waiting time is over");
+                logger.debug("{} has left. The waiting time is over", Thread.currentThread().getName());
             }
         } catch (InterruptedException e) {
-            logger.error(e.getMessage());
+            logger.error("{} interrupted", Thread.currentThread().getName(), e);
         } finally {
             semaphore.release();
         }
@@ -65,9 +60,9 @@ public class CarThread implements Runnable {
         if (s == 0) {
             try {
                 emptyParkingPlace = exchanger.exchange(emptyParkingPlace, 300, TimeUnit.MILLISECONDS);
-                logger.debug(Thread.currentThread().getName() + " changed parking place №" + emptyParkingPlace.getIdNumber());
+                logger.debug("{} changed parking place №{}", Thread.currentThread().getName(), emptyParkingPlace.getIdNumber());
             } catch (TimeoutException e) {
-                logger.debug(Thread.currentThread().getName() + " cannot change the parking space");
+                logger.debug("{} cannot change the parking space", Thread.currentThread().getName());
             }
         }
         return emptyParkingPlace;

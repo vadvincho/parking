@@ -2,16 +2,17 @@ package com.vadzimvincho.entity;
 
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 public class Parking {
-    private int parkedCarCounter;
+    private final AtomicInteger parkedCarCounter = new AtomicInteger();
     private Queue<ParkingPlace> parkingPlaces = new ConcurrentLinkedQueue<>();
 
     public Parking(int numberParkingPlaces) {
-        for (int i = 0; i < numberParkingPlaces; i++) {
-            ParkingPlace parkingPlace = new ParkingPlace(i);
-            parkingPlaces.add(parkingPlace);
-        }
+        IntStream.range(0, numberParkingPlaces)
+                .mapToObj(ParkingPlace::new)
+                .forEach(parkingPlace -> parkingPlaces.add(parkingPlace));
     }
 
     public Queue<ParkingPlace> getParkingPlaces() {
@@ -22,12 +23,12 @@ public class Parking {
         this.parkingPlaces = parkingPlaces;
     }
 
-    public int getParkedCarCounter() {
+    public AtomicInteger getParkedCarCounter() {
         return parkedCarCounter;
     }
 
     public void incParkedCarCounter() {
-        parkedCarCounter++;
+        parkedCarCounter.incrementAndGet();
     }
 
     public ParkingPlace takeParkingPlaces() {

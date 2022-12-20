@@ -7,28 +7,41 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Exchanger;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class CarThreadExecutor {
     private static final Logger logger = LoggerFactory.getLogger(CarThreadExecutor.class);
 
-    public void carThreadExecute(Parking parking, List<Car> cars) {
-        ReentrantLock locker = new ReentrantLock();
-        Semaphore semaphore = new Semaphore(parking.getParkingPlaces().size(), true);
-        Exchanger<ParkingPlace> exchanger = new Exchanger<>();
-        ExecutorService executorService = Executors.newCachedThreadPool();
+    private final Parking parking;
+    private final List<Car> cars;
+    private final Semaphore semaphore;
+    private final Exchanger<ParkingPlace> exchanger;
+    private final ExecutorService executorService;
 
+    public CarThreadExecutor(Parking parking, List<Car> cars) {
+        this.parking = parking;
+        this.cars = cars;
+        this.semaphore = new Semaphore(parking.getParkingPlaces().size(), true);
+        this.exchanger = new Exchanger<>();
+        this.executorService = Executors.newCachedThreadPool();
+    }
+
+    public void carThreadExecute() {
         for (Car car : cars) {
-            CarThread carThread = new CarThread(parking, car, semaphore, locker, exchanger);
+            CarThread carThread = new CarThread(parking, car, semaphore, exchanger);
             executorService.execute(carThread);
         }
         executorService.shutdown();
 
         try {
-            executorService.awaitTermination(1L, TimeUnit.MINUTES);
+            Boolean isDone = executorService.awaitTermination(1L, TimeUnit.MINUTES);
+            logger.debug("All threads are terminated: {}", isDone);
         } catch (InterruptedException e) {
-            logger.error(e.getMessage());
+            logger.error("{} interrupted", Thread.currentThread().getName(), e);
         }
     }
 }
